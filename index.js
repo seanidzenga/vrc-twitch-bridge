@@ -1,43 +1,19 @@
-const TwitchBot = require('twitch-bot');
+const TwitchBot = require('./ChatMonitor/Bot');
 
-const twitchUsername = process.env.TWITCH_USERNAME;
-const twitchOAuth = process.env.TWITCH_OAUTH;
-const twitchChannels = process.env.TWITCH_CHANNELS;
+const express = require('express');
+const port = process.env.PORT ? process.env.PORT : 3000;
+const app = express();
 
-if(twitchUsername === undefined){
-  console.log('Twitch username was undefined, did you forget to add it to the environment?');
-  console.log(`TWITCH_USERNAME: ${process.env.TWITCH_USERNAME}`);
-  return;
-}
+app.get('/messages', (request, response) => {
+  response.send(TwitchBot.messages);
+});
 
-if(twitchOAuth === undefined){
-  console.log('OAuth key was undefined, did you forget to add it to the environment?');
-  console.log(`TWITCH_OATH: ${process.env.TWITCH_OAUTH}`);
-  return;
-}
+app.get('/users', (request, response) => {
+  response.send(TwitchBot.users);
+});
 
-if(twitchChannels === undefined){
-  console.log('Twitch channels were undefined, did you forget to add them to the environment?');
-  console.log(`TWITCH_CHANNELS: ${process.env.TWITCH_CHANNELS}`);
-  return;
-}
-
-const Bot = new TwitchBot({
-  username: twitchUsername,
-  oauth: twitchOAuth,
-  channels: [twitchChannels]
+app.get('/all', (request, response) => {
+  response.send(TwitchBot.all);
 })
 
-Bot.on('join', channel => {
-  console.log(`Joined channel: ${channel}`);
-})
-
-Bot.on('error', error => {
-  console.log(error);
-})
-
-Bot.on('message', chatter => {
-  console.log(chatter.message);
-})
-
-Bot.join('subfrequencies');
+app.listen(port, () => console.log(`listening on port ${port}`));
