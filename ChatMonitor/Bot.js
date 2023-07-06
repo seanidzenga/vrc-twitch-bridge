@@ -2,14 +2,10 @@ const tmi = require('tmi.js');
 
 const twitchUsername = process.env.TWITCH_USERNAME;
 const twitchOAuth = process.env.TWITCH_OAUTH;
-const twitchChannels = process.env.TWITCH_CHANNELS.split(";");
+const twitchChannels = process.env.TWITCH_CHANNELS;
 
-let messages = [];
+let channels = {};
 let users = {};
-let all = { 
-  'messages' : [],
-  'users' : {}
-};
 
 const maxMessages = 20;
 
@@ -37,26 +33,41 @@ const client = new tmi.Client({
     username: twitchUsername,
     password: twitchOAuth
   },
-  channels: twitchChannels
+  channels: twitchChannels.split(";")
 });
 
 client.connect().catch(console.error);
 
 client.on('message', (channel, tags, message, self) => {
 
-  if (messages.length === maxMessages) messages.pop();
+  let c = channel.slice(1);
 
-  messages.unshift({
-    "user" : tags.username,
-    "message" : message
+  if (typeof channels[c] === "undefined") channels[c] = {};
+
+  if (typeof channels[c]["messages"] === "undefined") channels[c]["messages"] = [];
+
+  if (channels[c].messages.length === maxMessages) channels[c].messages.pop();
+
+  channels[c].messages.unshift({
+    "user" : tags["username"],
+    "message" : message,
+    "emotes" : tags["emotes"],
   });
 
+  // The users object is shared across all channels, this should help save space
+  // on string length (important with vrc string loading)
   if(!users.hasOwnProperty(tags.username)){
-    users[tags.username] = tags;
+    users[tags.username] = {
+      "badges" : tags["badges"],
+      "color" : tags["color"],
+      "display-name" : tags["display-name"],
+      "first-msg" : tags["first-msg"],
+      "returning-chatter" : tags["returning-chatter"],
+      "subscriber" : tags["subscriber"],
+      "turbo" : tags["turbo"],
+      "user-type" : tags["user-type"]
+    };
   }
-
-  all['messages'] = messages;
-  all['users'] = users;
 
   // TODO - we can get emotes in messages when they're used
   // unfortunately without dynamic vrcurl creation we can't do much in-client about them
@@ -72,6 +83,5 @@ client.on('message', (channel, tags, message, self) => {
   // size ranges 1.0, 2.0, 3.0 and give you 28x28, 56x56, 112x112 respectively
 });
 
-exports.all = all;
-exports.messages = messages;
+exports.channels = channels;
 exports.users = users;
