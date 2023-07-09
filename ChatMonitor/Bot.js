@@ -51,7 +51,7 @@ client.on('message', (channel, tags, message, self) => {
   channels[c].messages.unshift({
     "user" : tags["username"],
     "message" : message,
-    "emotes" : tags["emotes"],
+    "emotes" : processEmotes(tags["emotes"], message),
   });
 
   // The users object is shared across all channels, this should help save space
@@ -82,6 +82,56 @@ client.on('message', (channel, tags, message, self) => {
   // given this we'd use this url: https://static-cdn.jtvnw.net/emoticons/v1/emotesv2_7432e844fa7e46ea80307a83c4c417f4/1.0
   // size ranges 1.0, 2.0, 3.0 and give you 28x28, 56x56, 112x112 respectively
 });
+
+const processEmotes = (emotes, msg) => {
+  // emotes is an object, each key is a different emote, each value is an array of positions
+  // the positions are stored as a string with starting position and ending position separated
+  // by a hyphen
+  let result = [];
+
+  for(const [key, value] of Object.entries(emotes)){
+
+    // the key gives us the id of the emote, which would be useful if we could pull it from their cdn
+    // however we cannot, so maybe it's better to get the human-readable string value
+    let emoteName;
+    
+    for(let i = 0; i < value.length; i++){
+      let obj = {};
+      let range = getRange(value[i]);
+
+      if(i === 0){
+        emoteName = msg.substring(range[0], range[1] + 1);
+      }
+
+      obj['name'] = emoteName;
+      obj['start'] = range[0];
+      obj['end'] = range[1];
+
+      result.push(obj);
+    }
+  }
+
+  result.sort((a,b) => {
+    if(a.end < b.end){
+      return 1;
+    }
+    if(a.end > b.end){
+      return -1;
+    }
+
+    return 0;
+  });
+
+  return result;
+}
+
+const getRange = (range) => {
+  let tmp = range.split("-");
+  let result = [];
+  result[0] = parseInt(tmp[0]);
+  result[1] = parseInt(tmp[1]);
+  return result;
+}
 
 exports.channels = channels;
 exports.users = users;
