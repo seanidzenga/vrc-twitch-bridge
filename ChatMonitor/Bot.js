@@ -84,6 +84,8 @@ client.on('message', (channel, tags, message, self) => {
 });
 
 const processEmotes = (emotes, msg) => {
+
+  if(emotes === null) return null;
   // emotes is an object, each key is a different emote, each value is an array of positions
   // the positions are stored as a string with starting position and ending position separated
   // by a hyphen
